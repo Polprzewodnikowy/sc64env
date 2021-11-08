@@ -54,12 +54,11 @@ ENV N64_INST=/opt/n64
 ENV FORCE_DEFAULT_GCC=true
 RUN git clone https://github.com/DragonMinded/libdragon && \
     pushd ./libdragon && \
-    git checkout fc4b6708df7439b9386bb6631e24d8909d78d6ae && \
+    git checkout 4d58607b34ba4139567055a4ec460937dc8b09b0 && \
     pushd ./tools && \
     ./build-toolchain.sh && \
     popd && \
-    make install && \
-    make tools-install && \
+    ./build.sh && \
     popd && \
     rm -rf ./libdragon
 
@@ -68,10 +67,10 @@ FROM build_base AS build_quartus
 ADD setup_quartus.sh .
 RUN mkdir -p ./quartus && \
     pushd ./quartus && \
-    wget -q http://download.altera.com/akdlm/software/acdsinst/20.1std.1/720/ib_tar/Quartus-lite-20.1.1.720-linux.tar && \
-    tar xvf Quartus-lite-20.1.1.720-linux.tar && \
+    wget -q http://download.altera.com/akdlm/software/acdsinst/21.1std/842/ib_tar/Quartus-lite-21.1.0.842-linux.tar && \
+    tar xvf Quartus-lite-21.1.0.842-linux.tar && \
     popd && \
-    ./setup_quartus.sh 20.1 && \
+    ./setup_quartus.sh && \
     rm -rf ./quartus setup_quartus.sh
 
 
@@ -80,7 +79,7 @@ WORKDIR /workdir
 ENV DEBIAN_FRONTEND="noninteractive"
 ENV LC_ALL="en_US.UTF-8"
 ENV N64_INST="/usr/local"
-ENV PATH="${PATH}:/opt/intelFPGA_lite/20.1/quartus/bin"
+ENV PATH="${PATH}:/opt/intel/quartus/bin"
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y avra make python3 libglib2.0-0 libtcmalloc-minimal4 libmpc3 locales zip && \
@@ -89,5 +88,5 @@ RUN apt-get update && \
     /usr/sbin/update-locale LANG=en_US.UTF-8
 COPY --from=build_riscv /opt/riscv /usr/local
 COPY --from=build_n64 /opt/n64 /usr/local
-COPY --from=build_quartus /opt/intelFPGA_lite /opt/intelFPGA_lite
+COPY --from=build_quartus /opt/intel /opt/intel
 ENV LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4"
