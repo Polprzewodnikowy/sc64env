@@ -82,7 +82,7 @@ ENV N64_INST="/usr/local"
 ENV PATH="${PATH}:/opt/intel/quartus/bin"
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y avra make python3 libglib2.0-0 libtcmalloc-minimal4 libmpc3 locales zip && \
+    apt-get install -y avra binutils make python3 libglib2.0-0 libtcmalloc-minimal4 libmpc3 locales zip && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen en_US.UTF-8 && \
     /usr/sbin/update-locale LANG=en_US.UTF-8
