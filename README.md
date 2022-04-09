@@ -4,7 +4,6 @@
 Docker build environment for SummerCollection repository
 
 Image contains:
-- Quartus Prime Lite Edition [21.1.0.842](https://fpgasoftware.intel.com/21.1/?edition=lite&platform=linux)
-- RISC-V GNU Compiler Toolchain [2021.09.21](https://github.com/riscv-collab/riscv-gnu-toolchain/tree/2021.09.21)
-- Libdragon N64 SDK [4d58607b34ba4139567055a4ec460937dc8b09b0](https://github.com/DragonMinded/libdragon/commit/4d58607b34ba4139567055a4ec460937dc8b09b0)
-- AVR assembler [avra](https://github.com/Ro5bert/avra)
+- Lattice Diamond [3.12 SP1](https://www.latticesemi.com/en/Products/DesignSoftwareAndIP/FPGAandLDS/LatticeDiamond)
+- ARM GNU Compiler Toolchain [10.3-2021.10](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
+- Libdragon N64 SDK [b242d719ee1b75976c6a5be3f02db4d191ecbd77](https://github.com/DragonMinded/libdragon/commit/b242d719ee1b75976c6a5be3f02db4d191ecbd77)
