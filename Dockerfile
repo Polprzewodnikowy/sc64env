@@ -47,7 +47,6 @@ RUN yum install -y \
         libjpeg \
         libtiff \
         glib2 \
-        libusb \
         freetype \
         fontconfig \
         libX11 \
