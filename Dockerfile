@@ -33,6 +33,7 @@ ENV LM_LICENSE_FILE="/flexlm/license.dat"
 ENV DIAMOND_DIR="/usr/local/diamond/3.12"
 ENV bindir="$DIAMOND_DIR/bin/lin64"
 ENV N64_INST="/usr/local"
+COPY ./requirements.txt ./tmp/requirements.txt
 RUN yum install -y \
         bzip2 \
         csh \
@@ -40,6 +41,7 @@ RUN yum install -y \
         make \
         mpfr \
         perl \
+        python3 \
         zip \
         glibc \
         libjpeg \
@@ -59,6 +61,8 @@ RUN yum install -y \
     yum clean all -y && \
     mkdir -p ./tmp && \
     pushd ./tmp && \
+    python3 -m pip install --upgrade pip && \
+    python3 -m pip install --upgrade -r ./requirements.txt && \
     curl http://files.latticesemi.com/Diamond/3.12/diamond_3_12-base-240-2-x86_64-linux.rpm --output diamond_3_12-base-240-2-x86_64-linux.rpm && \
     curl http://files.latticesemi.com/Diamond/3.12.1/diamond_3_12-sp1-454-2-x86_64-linux.rpm --output diamond_3_12-sp1-454-2-x86_64-linux.rpm && \
     curl https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 --output gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 && \
