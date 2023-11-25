@@ -1,76 +1,107 @@
-FROM centos:7.9.2009 as base
+FROM rockylinux:8.8 as base
 SHELL ["/bin/bash", "-c"]
 WORKDIR /workdir
 RUN yum update -y && \
     yum clean all -y
 
-
-FROM base as build_n64
-ENV N64_INST="/opt/n64"
-RUN yum install -y \
-        centos-release-scl-rh \
+FROM base as toolchain_base
+RUN yum install -y dnf-plugins-core && \
+    yum config-manager --set-enabled powertools && \
+    yum install -y \
+        autoconf \
+        automake \
+        bison \
+        bzip2 \
+        expat-devel \
+        flex \
+        gawk \
+        gcc-toolset-13-gcc \
+        gcc-toolset-13-gcc-c++ \
         git \
         gmp-devel \
         libmpc-devel \
         libpng-devel \
-        make \
         mpfr-devel \
+        patchutils \
+        python3 \
         texinfo \
         zlib-devel && \
-    yum install -y devtoolset-11-toolchain && \
+    yum clean all -y
+
+FROM toolchain_base as build_n64_toolchain
+ENV N64_INST="/opt/n64"
+RUN source scl_source enable gcc-toolset-13 && \
     git clone https://github.com/DragonMinded/libdragon && \
-    pushd ./libdragon && \
-    git checkout -f b242d719ee1b75976c6a5be3f02db4d191ecbd77 && \
-    pushd ./tools && \
-    scl enable devtoolset-11 ./build-toolchain.sh && \
-    popd && \
-    scl enable devtoolset-11 ./build.sh && \
+    pushd ./libdragon/tools && \
+    ./build-toolchain.sh && \
+    rm -rf ./toolchain && \
     popd
 
+FROM build_n64_toolchain as build_n64_libdragon
+ENV N64_INST="/opt/n64"
+ENV LIBDRAGON_COMMIT="e3bd8893ecb7775a5d89e17090ec379405608a11"
+RUN source scl_source enable gcc-toolset-13 && \
+    pushd ./libdragon && \
+    git fetch && \
+    git checkout -f $LIBDRAGON_COMMIT && \
+    ./build.sh && \
+    popd
+
+FROM toolchain_base as build_riscv_toolchain
+ENV RISCV_TOOLCHAIN_COMMIT="tags/2023.11.22"
+RUN source scl_source enable gcc-toolset-13 && \
+    git clone https://github.com/riscv/riscv-gnu-toolchain && \
+    pushd ./riscv-gnu-toolchain && \
+    git checkout -f $RISCV_TOOLCHAIN_COMMIT && \
+    ./configure --prefix=/opt/riscv --with-arch=rv32i --with-abi=ilp32 --disable-gdb && \
+    make -j16 && \
+    popd && \
+    rm -rf ./riscv-gnu-toolchain
 
 FROM base as release
-ENV LM_LICENSE_FILE="/flexlm/license.dat"
-ENV DIAMOND_DIR="/usr/local/diamond/3.12"
-ENV bindir="$DIAMOND_DIR/bin/lin64"
 ENV N64_INST="/usr/local"
+ENV DIAMOND_DIR="/usr/local/diamond/3.13"
+ENV bindir="$DIAMOND_DIR/bin/lin64"
+ENV LM_LICENSE_FILE="/flexlm/license.dat"
 COPY ./requirements.txt ./tmp/requirements.txt
 RUN yum install -y \
-        bzip2 \
-        csh \
-        libmpc \
-        make \
-        mpfr \
-        perl \
-        python3 \
-        zip \
+        fontconfig \
+        freetype \
+        glib2 \
         glibc \
+        gstreamer1-plugins-base \
+        libICE \
         libjpeg \
         libtiff \
-        glib2 \
-        freetype \
-        fontconfig \
-        libX11 \
-        libICE \
         libuuid \
-        libXt \
+        libX11 \
+        libXcomposite \
         libXext \
-        libXrender \
+        libXft \
         libXi \
-        libXft && \
+        libXrender \
+        libXt \
+        mesa-libGL && \
+    yum install -y \
+        bc \
+        git \
+        libmpc \
+        make \
+        python3 \
+        wget \
+        zip && \
     yum clean all -y && \
     mkdir -p ./tmp && \
     pushd ./tmp && \
     python3 -m pip install --upgrade pip && \
     python3 -m pip install --upgrade -r ./requirements.txt && \
-    curl http://files.latticesemi.com/Diamond/3.12/diamond_3_12-base-240-2-x86_64-linux.rpm --output diamond_3_12-base-240-2-x86_64-linux.rpm && \
-    curl http://files.latticesemi.com/Diamond/3.12.1/diamond_3_12-sp1-454-2-x86_64-linux.rpm --output diamond_3_12-sp1-454-2-x86_64-linux.rpm && \
-    curl https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 --output gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 && \
-    rpm -ivh diamond_3_12-base-240-2-x86_64-linux.rpm && \
-    rpm -ivh diamond_3_12-sp1-454-2-x86_64-linux.rpm && \
-    tar -xf gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 && \
-    cp -r ./gcc-arm-none-eabi-10.3-2021.10/* /usr/local/ && \
+    wget https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz && \
+    tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz && \
+    cp -r ./arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi/* /usr/local/ && \
+    wget https://files.latticesemi.com/Diamond/3.13/diamond_3_13-base-56-2-x86_64-linux.rpm && \
+    rpm -ivh diamond_3_13-base-56-2-x86_64-linux.rpm && \
     popd && \
     rm -rf ./tmp && \
-    mkdir -p /flexlm && \
-    echo "source \$bindir/diamond_env" >> /etc/bashrc
-COPY --from=build_n64 /opt/n64 /usr/local
+    mkdir -p /flexlm
+COPY --from=build_n64_libdragon /opt/n64 /usr/local
+COPY --from=build_riscv_toolchain /opt/riscv /usr/local

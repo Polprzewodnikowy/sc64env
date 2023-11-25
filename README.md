@@ -1,11 +1,18 @@
 # sc64env
 
 
-Docker build environment for SummerCollection repository
+Docker build environment for SummerCart64 repository
 
 Image contains:
-- Lattice Diamond [3.12 SP1](https://www.latticesemi.com/en/Products/DesignSoftwareAndIP/FPGAandLDS/LatticeDiamond)
-- ARM GNU Compiler Toolchain [10.3-2021.10](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
-- Libdragon N64 SDK [b242d719ee1b75976c6a5be3f02db4d191ecbd77](https://github.com/DragonMinded/libdragon/commit/b242d719ee1b75976c6a5be3f02db4d191ecbd77)
+- Libdragon N64 SDK [e3bd8893ecb7775a5d89e17090ec379405608a11](https://github.com/DragonMinded/libdragon/commit/e3bd8893ecb7775a5d89e17090ec379405608a11)
+- RISC-V RV32I/ILP32 GNU Toolchain [tags/2023.11.22](https://github.com/riscv-collab/riscv-gnu-toolchain/tree/8e9fb09a0c4b1e566492ee6f42e8c1fa5ef7e0c2)
+- ARM GNU Toolchain [13.2.rel1](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads)
+- Lattice Diamond [3.13](https://www.latticesemi.com/en/Products/DesignSoftwareAndIP/FPGAandLDS/LatticeDiamond)
 - Python 3 with packages:
   - Pillow
+- Extra packages:
+  - bc
+  - git
+  - make
+  - wget
+  - zip
