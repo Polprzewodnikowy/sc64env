@@ -39,7 +39,7 @@ RUN source scl_source enable gcc-toolset-13 && \
 
 FROM build_n64_toolchain as build_n64_libdragon
 ENV N64_INST="/opt/n64"
-ENV LIBDRAGON_COMMIT="bcd85256afcb501950601f186e39482ad4e642bc"
+ENV LIBDRAGON_COMMIT="5e23357e660a027889d67caa775ea19678499b06"
 RUN source scl_source enable gcc-toolset-13 && \
     pushd ./libdragon && \
     git fetch && \
