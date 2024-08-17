@@ -1,64 +1,60 @@
-FROM rockylinux:8.8 as base
+FROM rockylinux:8.8 AS base
 SHELL ["/bin/bash", "-c"]
 WORKDIR /workdir
 RUN yum update -y && \
     yum clean all -y
 
-FROM base as toolchain_base
+FROM base AS build_libdragon_toolchain
+ENV N64_INST="/opt/libdragon"
+ENV LIBDRAGON_COMMIT="fe168f22058faf11a9655867b6698191f3c59e69"
+RUN yum install -y \
+        gcc \
+        gcc-c++ \
+        git \
+        make \
+        sudo \
+        wget && \
+    yum clean all -y && \
+    wget https://github.com/DragonMinded/libdragon/releases/download/toolchain-continuous-prerelease/gcc-toolchain-mips64-x86_64.rpm && \
+    rpm -ivh gcc-toolchain-mips64-x86_64.rpm && \
+    git clone https://github.com/DragonMinded/libdragon && \
+    pushd ./libdragon && \
+    git checkout -f $LIBDRAGON_COMMIT && \
+    ./build.sh && \
+    popd
+
+FROM base AS build_riscv_toolchain
+ENV RISCV_TOOLCHAIN_COMMIT="tags/2024.08.06"
 RUN yum install -y dnf-plugins-core && \
     yum config-manager --set-enabled powertools && \
     yum install -y \
         autoconf \
         automake \
         bison \
-        bzip2 \
         expat-devel \
         flex \
         gawk \
-        gcc-toolset-13-gcc \
-        gcc-toolset-13-gcc-c++ \
+        gcc \
+        gcc-c++ \
         git \
         gmp-devel \
         libmpc-devel \
-        libpng-devel \
+        libslirp-devel \
+        make \
         mpfr-devel \
         patchutils \
         python3 \
         texinfo \
         zlib-devel && \
-    yum clean all -y
-
-FROM toolchain_base as build_n64_toolchain
-ENV N64_INST="/opt/n64"
-RUN source scl_source enable gcc-toolset-13 && \
-    git clone https://github.com/DragonMinded/libdragon && \
-    pushd ./libdragon/tools && \
-    ./build-toolchain.sh && \
-    rm -rf ./toolchain && \
-    popd
-
-FROM build_n64_toolchain as build_n64_libdragon
-ENV N64_INST="/opt/n64"
-ENV LIBDRAGON_COMMIT="5e23357e660a027889d67caa775ea19678499b06"
-RUN source scl_source enable gcc-toolset-13 && \
-    pushd ./libdragon && \
-    git fetch && \
-    git checkout -f $LIBDRAGON_COMMIT && \
-    ./build.sh && \
-    popd
-
-FROM toolchain_base as build_riscv_toolchain
-ENV RISCV_TOOLCHAIN_COMMIT="tags/2023.11.22"
-RUN source scl_source enable gcc-toolset-13 && \
     git clone https://github.com/riscv/riscv-gnu-toolchain && \
     pushd ./riscv-gnu-toolchain && \
     git checkout -f $RISCV_TOOLCHAIN_COMMIT && \
     ./configure --prefix=/opt/riscv --with-arch=rv32i --with-abi=ilp32 --disable-gdb && \
-    make -j16 && \
+    make -j && \
     popd && \
     rm -rf ./riscv-gnu-toolchain
 
-FROM base as release
+FROM base AS release
 ENV N64_INST="/usr/local"
 ENV DIAMOND_DIR="/usr/local/diamond/3.13"
 ENV bindir="$DIAMOND_DIR/bin/lin64"
@@ -95,13 +91,13 @@ RUN yum install -y \
     pushd ./tmp && \
     python3 -m pip install --upgrade pip && \
     python3 -m pip install --upgrade -r ./requirements.txt && \
-    wget https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz && \
-    tar -xf arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz && \
-    cp -r ./arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi/* /usr/local/ && \
+    wget https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz && \
+    tar -xf arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz && \
+    cp -r ./arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/* /usr/local/ && \
     wget https://files.latticesemi.com/Diamond/3.13/diamond_3_13-base-56-2-x86_64-linux.rpm && \
     rpm -ivh diamond_3_13-base-56-2-x86_64-linux.rpm && \
     popd && \
     rm -rf ./tmp && \
     mkdir -p /flexlm
-COPY --from=build_n64_libdragon /opt/n64 /usr/local
+COPY --from=build_libdragon_toolchain /opt/libdragon /usr/local
 COPY --from=build_riscv_toolchain /opt/riscv /usr/local
